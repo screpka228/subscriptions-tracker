@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Трекер подписок</title>
+<meta name="description" content="Учёт подписок: суммы, даты списаний и итоги в месяц и в год.">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Подписки">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+  :root {
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #1d2433;
+    --muted: #6b7385;
+    --border: #e1e5ee;
+    --accent: #2563eb;
+    --danger: #dc2626;
+    --warn-bg: #fff7e6;
+    --warn-border: #f5b041;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    padding-top: calc(14px + env(safe-area-inset-top));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 { font-size: 20px; margin: 0; }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px;
+    display: grid;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .card h2 { font-size: 17px; margin: 0 0 12px; }
+
+  .totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .totals .value { font-size: 22px; font-weight: 700; }
+  .totals .label { color: var(--muted); font-size: 14px; }
+
+  .upcoming { background: var(--warn-bg); border-color: var(--warn-border); }
+  .upcoming ul { margin: 0; padding-left: 18px; }
+  .upcoming li { margin-bottom: 6px; }
+
+  .sub-item {
+    border-top: 1px solid var(--border);
+    padding: 14px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .sub-item:first-child { border-top: none; padding-top: 0; }
+  .sub-name { font-weight: 600; font-size: 16px; }
+  .sub-meta { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .sub-amount { font-weight: 600; white-space: nowrap; text-align: right; }
+
+  .empty { color: var(--muted); text-align: center; padding: 20px 0; }
+
+  button {
+    font: inherit;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 18px;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+    min-height: 48px;
+  }
+
+  button.secondary {
+    background: #eef2fb;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  button.danger { background: var(--danger); }
+  button.link { background: none; color: var(--accent); padding: 8px; min-height: 0; }
+
+  .row-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .row-actions button { padding: 8px 12px; min-height: 40px; font-size: 14px; }
+
+  .tabs { display: flex; gap: 8px; }
+  .tabs button { flex: 1; }
+  .tabs button.active { background: var(--text); }
+
+  form { display: grid; gap: 12px; }
+  label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+
+  input, select, textarea {
+    font: inherit;
+    font-size: 16px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    width: 100%;
+    min-height: 48px;
+  }
+
+  textarea { min-height: 80px; resize: vertical; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-actions { display: flex; gap: 8px; }
+  .form-actions button { flex: 1; }
+
+  .notice {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .error { color: var(--danger); font-size: 14px; }
+
+  .hidden { display: none !important; }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .modal {
+    background: var(--card);
+    width: 100%;
+    max-width: 560px;
+    max-height: 92vh;
+    overflow: auto;
+    border-radius: 16px 16px 0 0;
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 720px) {
+    .modal-backdrop { align-items: center; }
+    .modal { border-radius: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    .form-row { grid-template-columns: 1fr; }
+    .totals { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Трекер подписок</h1>
+  <button id="btn-add">+ Добавить</button>
+</header>
+
+<main>
+  <section id="view-list">
+    <div id="upcoming-box" class="card upcoming hidden">
+      <h2>Скоро списания (7 дней)</h2>
+      <ul id="upcoming-list"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Итоги</h2>
+      <div class="totals">
+        <div>
+          <div class="label">В месяц</div>
+          <div class="value" id="total-month">0</div>
+        </div>
+        <div>
+          <div class="label">В год</div>
+          <div class="value" id="total-year">0</div>
+        </div>
+      </div>
+      <div class="sub-meta">Суммы приведены к RUB по курсам из настроек. Без курса — не учитываются.</div>
+    </div>
+
+    <div class="card">
+      <h2>Подписки</h2>
+      <div id="subs-list"></div>
+    </div>
+  </section>
+
+  <section id="view-settings" class="hidden">
+    <div class="card">
+      <h2>Курсы валют к RUB</h2>
+      <form id="rates-form">
+        <div class="form-row">
+          <label>USD
+            <input id="rate-usd" type="number" min="0" step="0.01" inputmode="decimal">
+          </label>
+          <label>EUR
+            <input id="rate-eur" type="number" min="0" step="0.01" inputmode="decimal">
+          </label>
+        </div>
+        <button type="submit">Сохранить курсы</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Данные</h2>
+      <div class="row-actions">
+        <button id="btn-export" class="secondary">Экспорт</button>
+        <button id="btn-import" class="secondary">Импорт</button>
+        <input id="import-file" type="file" accept="application/json,.json" class="hidden">
+      </div>
+      <p id="import-error" class="error hidden"></p>
+    </div>
+
+    <div class="card">
+      <h2>Уведомления</h2>
+      <div id="notif-status"></div>
+    </div>
+  </section>
+</main>
+
+<nav class="card" style="position:sticky;bottom:0;margin:0;border-radius:0;border-left:0;border-right:0;border-bottom:0;padding-bottom:calc(12px + env(safe-area-inset-bottom));">
+  <div class="tabs">
+    <button id="tab-list" class="active">Подписки</button>
+    <button id="tab-settings" class="secondary">Настройки</button>
+  </div>
+</nav>
+
+<div id="modal-root"></div>
+
+<script>
+/* ==========================================================
+   Слой данных. Интерфейс работает только через эти функции,
+   поэтому синхронизацию (Supabase/Firebase) можно подключить
+   заменой storage-функций, не трогая UI.
+   ========================================================== */
+
+const SCHEMA_VERSION = 1;
+const STORAGE_KEY = "subscriptions-tracker:data";
+const RATES_KEY = "subscriptions-tracker:rates";
+const CURRENCIES = ["RUB", "USD", "EUR"];
+const PERIODS = { monthly: "Раз в месяц", yearly: "Раз в год" };
+const CARD_PATTERN = /\b(?:\d[ -]?){13,19}\b/;
+
+const DataStore = {
+  load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { version: SCHEMA_VERSION, subscriptions: [] };
+      return migrate(JSON.parse(raw));
+    } catch {
+      return { version: SCHEMA_VERSION, subscriptions: [] };
+    }
+  },
+
+  save(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  },
+
+  loadRates() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(RATES_KEY) || "null");
+      return raw && typeof raw === "object" ? raw : { USD: null, EUR: null };
+    } catch {
+      return { USD: null, EUR: null };
+    }
+  },
+
+  saveRates(rates) {
+    localStorage.setItem(RATES_KEY, JSON.stringify(rates));
+  },
+};
+
+/* Приводит данные любой поддерживаемой версии к текущей схеме. */
+function migrate(data) {
+  if (!data || typeof data !== "object" || !Array.isArray(data.subscriptions)) {
+    throw new Error("Нет списка подписок");
+  }
+  const version = Number(data.version) || 1;
+  if (version > SCHEMA_VERSION) {
+    throw new Error("Файл создан более новой версией приложения");
+  }
+  // Здесь добавляются преобразования при появлении версии 2 и выше.
+  return { version: SCHEMA_VERSION, subscriptions: data.subscriptions.map(normalizeSubscription) };
+}
+
+/* Проверяет и нормализует одну подписку. Бросает ошибку с понятным текстом. */
+function normalizeSubscription(raw) {
+  if (!raw || typeof raw !== "object") throw new Error("Некорректная запись подписки");
+  const name = String(raw.name || "").trim();
+  const amount = Number(raw.amount);
+  const currency = String(raw.currency || "");
+  const period = String(raw.period || "");
+  const nextDate = String(raw.nextDate || "");
+  if (!name) throw new Error("У подписки не указано название");
+  if (!Number.isFinite(amount) || amount < 0) throw new Error(`Некорректная сумма у «${name}»`);
+  if (!CURRENCIES.includes(currency)) throw new Error(`Неизвестная валюта у «${name}»`);
+  if (!PERIODS[period]) throw new Error(`Неизвестная периодичность у «${name}»`);
+  if (!isIsoDate(nextDate)) throw new Error(`Некорректная дата у «${name}»`);
+  const source = String(raw.source || "");
+  if (CARD_PATTERN.test(source)) throw new Error(`В поле «Откуда списывается» похоже на номер карты у «${name}»`);
+
+  return {
+    id: String(raw.id || newId()),
+    name,
+    amount,
+    currency,
+    period,
+    nextDate,
+    category: String(raw.category || "").trim(),
+    source: source.trim(),
+    note: String(raw.note || "").trim(),
+  };
+}
+
+function isIsoDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(parseDate(value).getTime());
+}
+
+/* ---------- Экспорт / импорт ---------- */
+
+function exportPayload(data) {
+  return JSON.stringify({ version: SCHEMA_VERSION, exportedAt: new Date().toISOString(), subscriptions: data.subscriptions }, null, 2);
+}
+
+function parseImport(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("Файл не является корректным JSON");
+  }
+  return migrate(parsed);
+}
+
+/* ---------- Даты и расчёты ---------- */
+
+function parseDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatDate(iso) {
+  return parseDate(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function todayStart() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function toIsoDate(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/* Прибавляет один период. Для месяца с меньшим числом дней берётся последний день месяца. */
+function addPeriod(date, period) {
+  const step = period === "yearly" ? 12 : 1;
+  const day = date.getDate();
+  const result = new Date(date.getFullYear(), date.getMonth() + step, 1);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
+  return result;
+}
+
+/* Если дата уже прошла, сдвигает её вперёд на периоды до ближайшей будущей (или сегодня). */
+function rollForwardDate(iso, period) {
+  let date = parseDate(iso);
+  const today = todayStart();
+  while (date < today) {
+    date = addPeriod(date, period);
+  }
+  return toIsoDate(date);
+}
+
+function refreshDates(subscriptions) {
+  let changed = false;
+  const updated = subscriptions.map((sub) => {
+    const next = rollForwardDate(sub.nextDate, sub.period);
+    if (next !== sub.nextDate) {
+      changed = true;
+      return { ...sub, nextDate: next };
+    }
+    return sub;
+  });
+  return { subscriptions: updated, changed };
+}
+
+/* Сумма в рублях в месяц. Возвращает null, если курс валюты не задан. */
+function monthlyInRub(sub, rates) {
+  const rate = sub.currency === "RUB" ? 1 : Number(rates[sub.currency]);
+  if (!rate || rate <= 0) return null;
+  const monthlyAmount = sub.period === "yearly" ? sub.amount / 12 : sub.amount;
+  return monthlyAmount * rate;
+}
+
+function calculateTotals(subscriptions, rates) {
+  let month = 0;
+  let skipped = 0;
+  for (const sub of subscriptions) {
+    const value = monthlyInRub(sub, rates);
+    if (value === null) skipped += 1;
+    else month += value;
+  }
+  return { month, year: month * 12, skipped };
+}
+
+function daysUntil(iso) {
+  return Math.round((parseDate(iso) - todayStart()) / 86400000);
+}
+
+function upcomingSubscriptions(subscriptions, days = 7) {
+  return subscriptions
+    .filter((sub) => {
+      const left = daysUntil(sub.nextDate);
+      return left >= 0 && left <= days;
+    })
+    .sort((a, b) => a.nextDate.localeCompare(b.nextDate));
+}
+
+function newId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/* ---------- Форматирование ---------- */
+
+function formatMoney(value, currency) {
+  return new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+}
+
+/* ==========================================================
+   Состояние и интерфейс
+   ========================================================== */
+
+const state = {
+  data: DataStore.load(),
+  rates: DataStore.loadRates(),
+};
+
+const $ = (id) => document.getElementById(id);
+
+function persist() {
+  DataStore.save(state.data);
+}
+
+/* Пересчитывает просроченные даты при каждом открытии страницы. */
+function applyDateRefresh() {
+  const result = refreshDates(state.data.subscriptions);
+  if (result.changed) {
+    state.data.subscriptions = result.subscriptions;
+    persist();
+  }
+}
+
+function render() {
+  renderUpcoming();
+  renderTotals();
+  renderList();
+}
+
+function renderUpcoming() {
+  const items = upcomingSubscriptions(state.data.subscriptions);
+  $("upcoming-box").classList.toggle("hidden", items.length === 0);
+  $("upcoming-list").innerHTML = items
+    .map((sub) => {
+      const left = daysUntil(sub.nextDate);
+      const when = left === 0 ? "сегодня" : left === 1 ? "завтра" : `через ${left} дн.`;
+      return `<li><strong>${escapeHtml(sub.name)}</strong>: ${formatMoney(sub.amount, sub.currency)}, ${when} (${formatDate(sub.nextDate)})</li>`;
+    })
+    .join("");
+}
+
+function renderTotals() {
+  const totals = calculateTotals(state.data.subscriptions, state.rates);
+  $("total-month").textContent = formatMoney(totals.month, "RUB");
+  $("total-year").textContent = formatMoney(totals.year, "RUB");
+}
+
+function renderList() {
+  const list = $("subs-list");
+  if (state.data.subscriptions.length === 0) {
+    list.innerHTML = `<div class="empty">Подписок пока нет. Нажмите «+ Добавить».</div>`;
+    return;
+  }
+  const sorted = [...state.data.subscriptions].sort((a, b) => a.nextDate.localeCompare(b.nextDate));
+  list.innerHTML = sorted
+    .map((sub) => {
+      const meta = [sub.category, PERIODS[sub.period], `следующее: ${formatDate(sub.nextDate)}`, sub.source]
+        .filter(Boolean)
+        .map(escapeHtml)
+        .join(" · ");
+      return `
+        <div class="sub-item">
+          <div>
+            <div class="sub-name">${escapeHtml(sub.name)}</div>
+            <div class="sub-meta">${meta}</div>
+            ${sub.note ? `<div class="sub-meta">${escapeHtml(sub.note)}</div>` : ""}
+            <div class="row-actions">
+              <button class="secondary" data-action="edit" data-id="${sub.id}">Изменить</button>
+              <button class="secondary" data-action="delete" data-id="${sub.id}">Удалить</button>
+            </div>
+          </div>
+          <div class="sub-amount">${formatMoney(sub.amount, sub.currency)}</div>
+        </div>`;
+    })
+    .join("");
+}
+
+/* ---------- Модальное окно ---------- */
+
+function openModal(html) {
+  $("modal-root").innerHTML = `<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  return $("modal-root").querySelector(".modal");
+}
+
+function closeModal() {
+  $("modal-root").innerHTML = "";
+}
+
+function openSubscriptionForm(existing) {
+  const sub = existing || { name: "", amount: "", currency: "RUB", period: "monthly", nextDate: toIsoDate(todayStart()), category: "", source: "", note: "" };
+  const title = existing ? "Изменить подписку" : "Новая подписка";
+  const modal = openModal(`
+    <h2>${title}</h2>
+    <form id="sub-form">
+      <label>Название
+        <input name="name" required maxlength="100" value="${escapeHtml(sub.name)}">
+      </label>
+      <div class="form-row">
+        <label>Сумма
+          <input name="amount" type="number" min="0" step="0.01" required inputmode="decimal" value="${sub.amount}">
+        </label>
+        <label>Валюта
+          <select name="currency">
+            ${CURRENCIES.map((c) => `<option value="${c}" ${c === sub.currency ? "selected" : ""}>${c}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>Периодичность
+          <select name="period">
+            ${Object.entries(PERIODS).map(([k, v]) => `<option value="${k}" ${k === sub.period ? "selected" : ""}>${v}</option>`).join("")}
+          </select>
+        </label>
+        <label>Дата следующего списания
+          <input name="nextDate" type="date" required value="${sub.nextDate}">
+        </label>
+      </div>
+      <label>Категория
+        <input name="category" maxlength="60" value="${escapeHtml(sub.category)}">
+      </label>
+      <label>Откуда списывается
+        <input name="source" maxlength="100" placeholder="Например: карта Сбера или кошелёк Apple ID" value="${escapeHtml(sub.source)}">
+      </label>
+      <label>Примечание
+        <textarea name="note" maxlength="500">${escapeHtml(sub.note)}</textarea>
+      </label>
+      <p id="form-error" class="error hidden"></p>
+      <div class="form-actions">
+        <button type="button" class="secondary" data-action="cancel">Отмена</button>
+        <button type="submit">Сохранить</button>
+      </div>
+    </form>`);
+
+  modal.querySelector("[data-action=cancel]").addEventListener("click", closeModal);
+  modal.querySelector("#sub-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const errorBox = $("form-error");
+    const draft = {
+      id: existing ? existing.id : newId(),
+      name: form.name.value,
+      amount: form.amount.value,
+      currency: form.currency.value,
+      period: form.period.value,
+      nextDate: form.nextDate.value,
+      category: form.category.value,
+      source: form.source.value,
+      note: form.note.value,
+    };
+    try {
+      const saved = normalizeSubscription(draft);
+      const others = state.data.subscriptions.filter((s) => s.id !== saved.id);
+      state.data.subscriptions = [...others, saved];
+      state.data.subscriptions = refreshDates(state.data.subscriptions).subscriptions;
+      persist();
+      closeModal();
+      render();
+    } catch (error) {
+      errorBox.textContent = error.message;
+      errorBox.classList.remove("hidden");
+    }
+  });
+}
+
+function confirmDelete(id) {
+  const sub = state.data.subscriptions.find((s) => s.id === id);
+  if (!sub) return;
+  const modal = openModal(`
+    <h2>Удалить подписку?</h2>
+    <p>«${escapeHtml(sub.name)}» будет удалена без возможности восстановления.</p>
+    <div class="form-actions">
+      <button class="secondary" data-action="cancel">Отмена</button>
+      <button class="danger" data-action="confirm">Удалить</button>
+    </div>`);
+  modal.querySelector("[data-action=cancel]").addEventListener("click", closeModal);
+  modal.querySelector("[data-action=confirm]").addEventListener("click", () => {
+    state.data.subscriptions = state.data.subscriptions.filter((s) => s.id !== id);
+    persist();
+    closeModal();
+    render();
+  });
+}
+
+/* ---------- Вкладки ---------- */
+
+function showTab(name) {
+  const isList = name === "list";
+  $("view-list").classList.toggle("hidden", !isList);
+  $("view-settings").classList.toggle("hidden", isList);
+  $("tab-list").className = isList ? "active" : "secondary";
+  $("tab-settings").className = isList ? "secondary" : "active";
+}
+
+/* ---------- Настройки: курсы, экспорт, импорт, уведомления ---------- */
+
+function renderRatesForm() {
+  $("rate-usd").value = state.rates.USD ?? "";
+  $("rate-eur").value = state.rates.EUR ?? "";
+}
+
+function exportData() {
+  const blob = new Blob([exportPayload(state.data)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "subscriptions.json";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function handleImportFile(file) {
+  const errorBox = $("import-error");
+  errorBox.classList.add("hidden");
+  try {
+    const imported = parseImport(await file.text());
+    const ok = confirm(`Заменить текущие данные (${state.data.subscriptions.length} шт.) на данные из файла (${imported.subscriptions.length} шт.)?`);
+    if (!ok) return;
+    state.data = { version: SCHEMA_VERSION, subscriptions: refreshDates(imported.subscriptions).subscriptions };
+    persist();
+    render();
+    alert("Данные импортированы.");
+  } catch (error) {
+    errorBox.textContent = `Не удалось импортировать: ${error.message}`;
+    errorBox.classList.remove("hidden");
+  }
+}
+
+function renderNotificationStatus() {
+  const box = $("notif-status");
+  if (!("Notification" in window)) {
+    box.innerHTML = `<div class="notice">Этот браузер не поддерживает уведомления. Список «Скоро списания» виден на главном экране.</div>`;
+    return;
+  }
+  if (Notification.permission === "granted") {
+    box.innerHTML = `<p>Уведомления разрешены.</p>`;
+  } else if (Notification.permission === "denied") {
+    box.innerHTML = `<div class="notice">Уведомления запрещены в настройках браузера.</div>`;
+  } else {
+    box.innerHTML = `<button id="btn-notif">Разрешить уведомления</button>`;
+    $("btn-notif").addEventListener("click", async () => {
+      await Notification.requestPermission();
+      renderNotificationStatus();
+    });
+  }
+}
+
+/* ---------- Запуск ---------- */
+
+function bindEvents() {
+  $("btn-add").addEventListener("click", () => openSubscriptionForm(null));
+  $("tab-list").addEventListener("click", () => showTab("list"));
+  $("tab-settings").addEventListener("click", () => showTab("settings"));
+
+  $("subs-list").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const sub = state.data.subscriptions.find((s) => s.id === button.dataset.id);
+    if (button.dataset.action === "edit" && sub) openSubscriptionForm(sub);
+    if (button.dataset.action === "delete") confirmDelete(button.dataset.id);
+  });
+
+  $("rates-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    state.rates = {
+      USD: Number($("rate-usd").value) || null,
+      EUR: Number($("rate-eur").value) || null,
+    };
+    DataStore.saveRates(state.rates);
+    render();
+    alert("Курсы сохранены.");
+  });
+
+  $("btn-export").addEventListener("click", exportData);
+  $("btn-import").addEventListener("click", () => $("import-file").click());
+  $("import-file").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (file) handleImportFile(file);
+  });
+}
+
+function start() {
+  applyDateRefresh();
+  bindEvents();
+  renderRatesForm();
+  renderNotificationStatus();
+  render();
+  showTab("list");
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+
+start();
+</script>
+</body>
+</html>
