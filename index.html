@@ -106,7 +106,7 @@
 
   .brand { font-size: 18px; font-weight: 700; margin-right: auto; }
 
-  .header-tabs { display: none; gap: 6px; }
+  .header-tabs { display: none; gap: 6px; position: relative; }
 
   /* ---------- Кнопки ---------- */
   button {
@@ -262,6 +262,7 @@
   }
 
   .bottom-nav button { flex: 1; }
+  .bottom-nav .tab-thumb { top: 8px; bottom: 8px; left: 12px; width: calc((100% - 32px) / 2); transform: translateX(calc(var(--index, 0) * (100% + 8px))); }
 
   /* ---------- Настройки ---------- */
   .settings-grid { display: grid; gap: 14px; }
@@ -318,7 +319,24 @@
   }
 
   /* Иконки вместо текста: кнопки и значки */
+  /* Подсветка вкладки скользит под кнопками (см. .tab-thumb) */
+  .tab-thumb {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 0;
+    width: 48px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    transform: translateX(calc(var(--index, 0) * 100%));
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .header-tabs .tab-thumb { top: 0; bottom: 0; border-radius: 12px; transform: translateX(calc(var(--index, 0) * 54px)); }
+
   .icon-btn {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -330,7 +348,7 @@
     border: 1px solid transparent;
   }
 
-  .icon-btn.tab-active { color: var(--accent); background: var(--accent-soft); }
+  .icon-btn.tab-active { color: var(--accent); }
   .icon-btn svg, .segmented svg { width: 22px; height: 22px; }
 
   #view-list { display: grid; gap: 14px; }
@@ -446,6 +464,7 @@
 <header>
   <div class="brand">Подписки</div>
   <nav class="header-tabs" aria-label="Разделы">
+    <span class="tab-thumb"></span>
     <button class="icon-btn tab-active" data-tab="list" aria-label="Подписки" title="Подписки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
     <button class="icon-btn tab-idle" data-tab="settings" aria-label="Настройки" title="Настройки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </nav>
@@ -525,6 +544,7 @@
 </main>
 
 <nav class="bottom-nav" aria-label="Разделы">
+  <span class="tab-thumb"></span>
   <button class="icon-btn tab-active" data-tab="list" aria-label="Подписки" title="Подписки" style="flex:1;width:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
   <button class="icon-btn tab-idle" data-tab="settings" aria-label="Настройки" title="Настройки" style="flex:1;width:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </nav>
@@ -989,6 +1009,8 @@ function showTab(name) {
     button.classList.toggle("tab-active", active);
     button.classList.toggle("tab-idle", !active);
   });
+  const tabIndex = name === "settings" ? 1 : 0;
+  document.querySelectorAll(".tab-thumb").forEach((thumb) => thumb.style.setProperty("--index", tabIndex));
   $("btn-add").classList.toggle("hidden", name !== "list");
 }
 
