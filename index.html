@@ -268,9 +268,11 @@
 
   .field-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px;
   }
+
+  .settings-grid > .card, main > section { min-width: 0; }
 
   .segmented { display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
   .segmented button { flex: 1; background: transparent; color: var(--muted); }
@@ -313,9 +315,21 @@
 
   textarea { min-height: 80px; resize: vertical; }
 
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .form-row > * { min-width: 0; }
+  input[type="date"] { -webkit-appearance: none; appearance: none; display: block; }
   .form-actions { display: flex; gap: 8px; }
   .form-actions button { flex: 1; }
+
+  /* Кнопки формы всегда видны внизу шторки, даже когда форма длинная */
+  .sheet-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    margin: 0 -18px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+  }
 
   .error { color: var(--danger); font-size: 14px; margin: 0; }
 
@@ -338,8 +352,7 @@
     max-height: 92vh;
     overflow: auto;
     border-radius: 20px 20px 0 0;
-    padding: 20px 18px;
-    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    padding: 20px 18px 0;
   }
 
   .modal h2 { font-size: 18px; margin: 0 0 14px; }
@@ -356,7 +369,7 @@
   }
 
   @media (max-width: 480px) {
-    .form-row, .field-grid { grid-template-columns: 1fr; }
+    .form-row, .field-grid { grid-template-columns: minmax(0, 1fr); }
     .hero-value { font-size: 24px; }
   }
 </style>
@@ -816,7 +829,7 @@ function openSubscriptionForm(existing) {
         <textarea name="note" maxlength="500">${escapeHtml(sub.note)}</textarea>
       </label>
       <p id="form-error" class="error hidden"></p>
-      <div class="form-actions">
+      <div class="form-actions sheet-actions">
         <button type="button" class="ghost" data-action="cancel">Отмена</button>
         <button type="submit">Сохранить</button>
       </div>
