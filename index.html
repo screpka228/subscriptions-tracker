@@ -274,9 +274,48 @@
 
   .settings-grid > .card, main > section { min-width: 0; }
 
-  .segmented { display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
-  .segmented button { flex: 1 1 0; min-width: 0; background: transparent; color: var(--muted); padding: 8px; min-height: 40px; }
-  .segmented button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .segmented { position: relative; display: flex; background: var(--surface-2); padding: 4px; border-radius: 12px; }
+  .segmented button { position: relative; z-index: 1; flex: 1 1 0; min-width: 0; background: transparent; color: var(--muted); padding: 8px; min-height: 40px; }
+  .segmented button.on { color: var(--text); }
+
+  /* Подсветка выбранного варианта скользит между кнопками */
+  .seg-thumb {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: calc((100% - 8px) / 3);
+    border-radius: 9px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    transform: translateX(calc(var(--thumb-index, 0) * 100%));
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* Плавная смена цветов при переключении темы */
+  .theme-anim, .theme-anim * {
+    transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease !important;
+  }
+
+  /* Лёгкое появление экранов, окон и кнопок */
+  section:not(.hidden) { animation: fade-in 0.25s ease; }
+  .modal-backdrop { animation: fade-in 0.2s ease; }
+  .modal { animation: pop-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  button { transition: background-color 0.2s ease, color 0.2s ease; }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 
   /* Иконки вместо текста: кнопки и значки */
   .icon-btn {
@@ -339,16 +378,6 @@
   .form-actions { display: flex; gap: 8px; }
   .form-actions button { flex: 1; }
 
-  /* Кнопки формы всегда видны внизу шторки, даже когда форма длинная */
-  .sheet-actions {
-    position: sticky;
-    bottom: 0;
-    background: var(--surface);
-    margin: 4px -20px -20px;
-    padding: 12px 20px 20px;
-    border-top: 1px solid var(--border);
-    border-radius: 0 0 20px 20px;
-  }
 
   .error { color: var(--danger); font-size: 14px; margin: 0; }
 
@@ -365,17 +394,35 @@
     z-index: 10;
   }
 
+  /* Шторка: заголовок и кнопки фиксированы, прокручивается только середина */
   .modal {
     background: var(--surface);
     width: 100%;
     max-width: 420px;
     max-height: 86vh;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     border-radius: 20px;
     border: 1px solid var(--border);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
     padding: 20px;
   }
+
+  .modal form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+  .sheet-body {
+    display: grid;
+    gap: 14px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 4px;
+  }
+
+  .sheet-footer { flex-shrink: 0; padding-top: 14px; }
+
+  .hint { margin: -6px 0 0; font-size: 13px; color: var(--muted); }
 
   .modal h2 { font-size: 18px; margin: 0 0 14px; }
   .modal p { margin: 0 0 14px; color: var(--muted); }
@@ -437,6 +484,7 @@
     <div class="card">
       <h2 class="card-title">Тема</h2>
       <div class="segmented" id="theme-switch">
+        <span class="seg-thumb"></span>
         <button data-theme-value="system" aria-label="Системная" title="Системная"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button>
         <button data-theme-value="light" aria-label="Светлая" title="Светлая"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
         <button data-theme-value="dark" aria-label="Тёмная" title="Тёмная"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
@@ -701,6 +749,15 @@ function formatMoney(value, currency) {
   return new Intl.NumberFormat("ru-RU", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
 }
 
+/* Сумма с тысячными и больше округляется до сотых в большую сторону. */
+function ceilToCents(value) {
+  return Math.ceil(Math.round(value * 1e6) / 1e4) / 100;
+}
+
+function hasExtraDecimals(value) {
+  return Number.isFinite(value) && Math.round(value * 1e6) % 10000 !== 0;
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
 }
@@ -816,12 +873,13 @@ function openSubscriptionForm(existing) {
   const modal = openModal(`
     <h2>${title}</h2>
     <form id="sub-form">
+      <div class="sheet-body">
       <label>Название
         <input name="name" required maxlength="100" value="${escapeHtml(sub.name)}">
       </label>
       <div class="form-row">
         <label>Сумма
-          <input name="amount" type="number" min="0" step="0.01" required inputmode="decimal" value="${sub.amount}">
+          <input name="amount" type="number" min="0" step="any" required inputmode="decimal" value="${sub.amount}">
         </label>
         <label>Валюта
           <select name="currency">
@@ -829,6 +887,7 @@ function openSubscriptionForm(existing) {
           </select>
         </label>
       </div>
+      <p id="amount-hint" class="hint hidden"></p>
       <div class="form-row">
         <label>Периодичность
           <select name="period">
@@ -849,13 +908,28 @@ function openSubscriptionForm(existing) {
         <textarea name="note" maxlength="500">${escapeHtml(sub.note)}</textarea>
       </label>
       <p id="form-error" class="error hidden"></p>
-      <div class="form-actions sheet-actions">
+      </div>
+      <div class="form-actions sheet-footer">
         <button type="button" class="ghost" data-action="cancel">Отмена</button>
         <button type="submit">Сохранить</button>
       </div>
     </form>`);
 
   modal.querySelector("[data-action=cancel]").addEventListener("click", closeModal);
+  const amountField = modal.querySelector("input[name=amount]");
+  const currencyField = modal.querySelector("select[name=currency]");
+  const amountHint = modal.querySelector("#amount-hint");
+  const updateAmountHint = () => {
+    const value = Number(amountField.value);
+    const needsRounding = amountField.value !== "" && hasExtraDecimals(value);
+    amountHint.classList.toggle("hidden", !needsRounding);
+    if (needsRounding) {
+      amountHint.textContent = `Округление до сотых в большую сторону (${formatMoney(ceilToCents(value), currencyField.value)})`;
+    }
+  };
+  amountField.addEventListener("input", updateAmountHint);
+  currencyField.addEventListener("change", updateAmountHint);
+
   modal.querySelector("#sub-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.target;
@@ -863,7 +937,7 @@ function openSubscriptionForm(existing) {
     const draft = {
       id: existing ? existing.id : newId(),
       name: form.name.value,
-      amount: form.amount.value,
+      amount: ceilToCents(Number(form.amount.value)),
       currency: form.currency.value,
       period: form.period.value,
       nextDate: form.nextDate.value,
@@ -918,6 +992,16 @@ function showTab(name) {
   $("btn-add").classList.toggle("hidden", name !== "list");
 }
 
+let themeAnimTimer = null;
+
+/* Включает плавную смену цветов на короткое время после клика по теме. */
+function animateThemeChange() {
+  const root = document.documentElement;
+  root.classList.add("theme-anim");
+  clearTimeout(themeAnimTimer);
+  themeAnimTimer = setTimeout(() => root.classList.remove("theme-anim"), 400);
+}
+
 function applyTheme(theme) {
   state.theme = theme;
   DataStore.saveTheme(theme);
@@ -927,6 +1011,8 @@ function applyTheme(theme) {
   document.querySelectorAll("[data-theme-value]").forEach((button) => {
     button.classList.toggle("on", button.dataset.themeValue === theme);
   });
+  const thumbIndex = ["system", "light", "dark"].indexOf(theme);
+  $("theme-switch").style.setProperty("--thumb-index", Math.max(0, thumbIndex));
 }
 
 /* ---------- Настройки: курсы, экспорт, импорт, уведомления ---------- */
@@ -994,7 +1080,10 @@ function bindEvents() {
   });
 
   document.querySelectorAll("[data-theme-value]").forEach((button) => {
-    button.addEventListener("click", () => applyTheme(button.dataset.themeValue));
+    button.addEventListener("click", () => {
+      animateThemeChange();
+      applyTheme(button.dataset.themeValue);
+    });
   });
 
   $("subs-list").addEventListener("click", (event) => {
