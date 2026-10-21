@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Трекер подписок</title>
 <meta name="description" content="Учёт подписок: суммы, даты списаний и итоги в месяц и в год.">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1420" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -13,16 +14,67 @@
 <meta name="apple-mobile-web-app-title" content="Подписки">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
+  /* ---------- Цвета: светлая тема по умолчанию, тёмная — ниже ---------- */
   :root {
-    --bg: #f5f7fb;
-    --card: #ffffff;
-    --text: #1d2433;
-    --muted: #6b7385;
-    --border: #e1e5ee;
+    --bg: #f3f5fa;
+    --surface: #ffffff;
+    --surface-2: #f7f8fc;
+    --text: #161b28;
+    --muted: #6b7388;
+    --border: #e4e8f1;
     --accent: #2563eb;
+    --accent-text: #ffffff;
+    --accent-soft: #e8efff;
     --danger: #dc2626;
-    --warn-bg: #fff7e6;
-    --warn-border: #f5b041;
+    --danger-soft: #fdecec;
+    --warn: #b45309;
+    --warn-soft: #fff4e0;
+    --hero-from: #2563eb;
+    --hero-to: #7c3aed;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 16px rgba(16, 24, 40, 0.05);
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c1019;
+      --surface: #161c2a;
+      --surface-2: #1d2436;
+      --text: #e8ecf5;
+      --muted: #8f99b0;
+      --border: #272f44;
+      --accent: #5b8cff;
+      --accent-text: #0c1019;
+      --accent-soft: #1d2b52;
+      --danger: #f47272;
+      --danger-soft: #3a1f25;
+      --warn: #f5b25c;
+      --warn-soft: #3a2e1a;
+      --hero-from: #1e3a8a;
+      --hero-to: #5b21b6;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0c1019;
+    --surface: #161c2a;
+    --surface-2: #1d2436;
+    --text: #e8ecf5;
+    --muted: #8f99b0;
+    --border: #272f44;
+    --accent: #5b8cff;
+    --accent-text: #0c1019;
+    --accent-soft: #1d2b52;
+    --danger: #f47272;
+    --danger-soft: #3a1f25;
+    --warn: #f5b25c;
+    --warn-soft: #3a2e1a;
+    --hero-from: #1e3a8a;
+    --hero-to: #5b21b6;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
@@ -32,110 +84,229 @@
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding-bottom: env(safe-area-inset-bottom);
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
   }
 
+  /* ---------- Шапка ---------- */
   header {
     position: sticky;
     top: 0;
     z-index: 5;
-    background: var(--card);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border);
-    padding: 14px 16px;
-    padding-top: calc(14px + env(safe-area-inset-top));
+    padding: 12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top));
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
   }
 
-  header h1 { font-size: 20px; margin: 0; }
+  .brand { font-size: 18px; font-weight: 700; margin-right: auto; }
 
+  .header-tabs { display: none; gap: 6px; }
+
+  /* ---------- Кнопки ---------- */
+  button {
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    padding: 11px 18px;
+    cursor: pointer;
+    background: var(--accent);
+    color: var(--accent-text);
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  button.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  button.soft {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  button.danger { background: var(--danger); color: #fff; }
+  button.tab-active { background: var(--accent-soft); color: var(--accent); }
+  button.tab-idle { background: transparent; color: var(--muted); }
+
+  button.small { padding: 7px 12px; min-height: 34px; font-size: 13px; border-radius: 9px; }
+
+  /* ---------- Раскладка ---------- */
   main {
-    max-width: 720px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 16px;
+    padding: 16px 16px 112px; /* место под нижнюю панель на телефоне */
     display: grid;
-    gap: 16px;
+    gap: 14px;
   }
 
   .card {
-    background: var(--card);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: var(--shadow);
   }
 
-  .card h2 { font-size: 17px; margin: 0 0 12px; }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
 
-  .totals {
+  /* ---------- Итоги ---------- */
+  .hero {
+    background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+    color: #fff;
+    border: none;
+    padding: 20px;
+  }
+
+  .hero .card-title { color: rgba(255, 255, 255, 0.75); margin-bottom: 4px; }
+
+  .hero-totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .hero-value { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+  .hero-label { font-size: 13px; color: rgba(255, 255, 255, 0.75); }
+  .hero-note { font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-top: 12px; }
+
+  /* ---------- Скоро списания ---------- */
+  .upcoming {
+    background: var(--warn-soft);
+    border-color: transparent;
+  }
+
+  .upcoming .card-title { color: var(--warn); }
+
+  .upcoming-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .upcoming-item + .upcoming-item { border-top: 1px solid color-mix(in srgb, var(--warn) 25%, transparent); }
+  .upcoming-name { font-weight: 600; }
+  .upcoming-when { font-size: 13px; color: var(--warn); font-weight: 600; white-space: nowrap; }
+
+  /* ---------- Список подписок ---------- */
+  .sub-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .sub-item:first-child { border-top: none; padding-top: 0; }
+  .sub-name { font-weight: 600; font-size: 16px; }
+  .sub-meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+  .sub-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+  .chip {
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .chip.soon { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+
+  .sub-amount { font-weight: 700; font-size: 16px; text-align: right; white-space: nowrap; }
+  .sub-amount small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .sub-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 28px 8px;
+  }
+
+  .empty strong { display: block; color: var(--text); font-size: 16px; margin-bottom: 6px; }
+
+  /* ---------- Нижняя панель (только телефон) ---------- */
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 6;
+    display: flex;
+    gap: 8px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav button { flex: 1; }
+
+  /* ---------- Настройки ---------- */
+  .settings-grid { display: grid; gap: 14px; }
+
+  .field-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
 
-  .totals .value { font-size: 22px; font-weight: 700; }
-  .totals .label { color: var(--muted); font-size: 14px; }
+  .segmented { display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
+  .segmented button { flex: 1; background: transparent; color: var(--muted); }
+  .segmented button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 
-  .upcoming { background: var(--warn-bg); border-color: var(--warn-border); }
-  .upcoming ul { margin: 0; padding-left: 18px; }
-  .upcoming li { margin-bottom: 6px; }
+  .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .action-row button { flex: 1; min-width: 140px; }
 
-  .sub-item {
-    border-top: 1px solid var(--border);
-    padding: 14px 0;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
+  .notice {
+    background: var(--warn-soft);
+    color: var(--warn);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
   }
 
-  .sub-item:first-child { border-top: none; padding-top: 0; }
-  .sub-name { font-weight: 600; font-size: 16px; }
-  .sub-meta { color: var(--muted); font-size: 14px; margin-top: 4px; }
-  .sub-amount { font-weight: 600; white-space: nowrap; text-align: right; }
+  .muted { color: var(--muted); font-size: 14px; }
 
-  .empty { color: var(--muted); text-align: center; padding: 20px 0; }
-
-  button {
-    font: inherit;
-    font-size: 16px;
-    border: none;
-    border-radius: 10px;
-    padding: 12px 18px;
-    cursor: pointer;
-    background: var(--accent);
-    color: #fff;
-    min-height: 48px;
-  }
-
-  button.secondary {
-    background: #eef2fb;
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  button.danger { background: var(--danger); }
-  button.link { background: none; color: var(--accent); padding: 8px; min-height: 0; }
-
-  .row-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .row-actions button { padding: 8px 12px; min-height: 40px; font-size: 14px; }
-
-  .tabs { display: flex; gap: 8px; }
-  .tabs button { flex: 1; }
-  .tabs button.active { background: var(--text); }
-
-  form { display: grid; gap: 12px; }
-  label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+  /* ---------- Формы и модальные окна ---------- */
+  form { display: grid; gap: 14px; }
+  label { display: grid; gap: 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
 
   input, select, textarea {
     font: inherit;
     font-size: 16px;
-    padding: 12px;
+    padding: 12px 14px;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    background: #fff;
+    border-radius: 12px;
+    background: var(--surface-2);
     color: var(--text);
     width: 100%;
-    min-height: 48px;
+    min-height: 46px;
+    color-scheme: inherit;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
   }
 
   textarea { min-height: 80px; resize: vertical; }
@@ -144,22 +315,14 @@
   .form-actions { display: flex; gap: 8px; }
   .form-actions button { flex: 1; }
 
-  .notice {
-    background: var(--warn-bg);
-    border: 1px solid var(--warn-border);
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 14px;
-  }
-
-  .error { color: var(--danger); font-size: 14px; }
+  .error { color: var(--danger); font-size: 14px; margin: 0; }
 
   .hidden { display: none !important; }
 
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.45);
+    background: rgba(5, 8, 16, 0.55);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -167,100 +330,120 @@
   }
 
   .modal {
-    background: var(--card);
+    background: var(--surface);
     width: 100%;
     max-width: 560px;
     max-height: 92vh;
     overflow: auto;
-    border-radius: 16px 16px 0 0;
-    padding: 16px;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    padding: 20px 18px;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
   }
 
+  .modal h2 { font-size: 18px; margin: 0 0 14px; }
+  .modal p { margin: 0 0 14px; color: var(--muted); }
+
+  /* ---------- Адаптивность ---------- */
   @media (min-width: 720px) {
+    .header-tabs { display: flex; }
+    .bottom-nav { display: none; }
+    main { padding-bottom: 32px; }
     .modal-backdrop { align-items: center; }
-    .modal { border-radius: 16px; }
+    .modal { border-radius: 20px; }
+    .card { padding: 22px; }
   }
 
   @media (max-width: 480px) {
-    .form-row { grid-template-columns: 1fr; }
-    .totals { grid-template-columns: 1fr; }
+    .form-row, .field-grid { grid-template-columns: 1fr; }
+    .hero-value { font-size: 24px; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Трекер подписок</h1>
+  <div class="brand">Подписки</div>
+  <nav class="header-tabs" aria-label="Разделы">
+    <button class="tab-active" data-tab="list">Подписки</button>
+    <button class="tab-idle" data-tab="settings">Настройки</button>
+  </nav>
   <button id="btn-add">+ Добавить</button>
 </header>
 
 <main>
   <section id="view-list">
     <div id="upcoming-box" class="card upcoming hidden">
-      <h2>Скоро списания (7 дней)</h2>
-      <ul id="upcoming-list"></ul>
+      <h2 class="card-title">Скоро списания · 7 дней</h2>
+      <div id="upcoming-list"></div>
     </div>
 
-    <div class="card">
-      <h2>Итоги</h2>
-      <div class="totals">
+    <div class="card hero">
+      <div class="card-title">Всего в месяц</div>
+      <div class="hero-totals">
         <div>
-          <div class="label">В месяц</div>
-          <div class="value" id="total-month">0</div>
+          <div class="hero-value" id="total-month">0 ₽</div>
+          <div class="hero-label">в месяц</div>
         </div>
         <div>
-          <div class="label">В год</div>
-          <div class="value" id="total-year">0</div>
+          <div class="hero-value" id="total-year">0 ₽</div>
+          <div class="hero-label">в год</div>
         </div>
       </div>
-      <div class="sub-meta">Суммы приведены к RUB по курсам из настроек. Без курса — не учитываются.</div>
+      <div class="hero-note" id="total-note"></div>
     </div>
 
     <div class="card">
-      <h2>Подписки</h2>
+      <h2 class="card-title">Все подписки</h2>
       <div id="subs-list"></div>
     </div>
   </section>
 
-  <section id="view-settings" class="hidden">
+  <section id="view-settings" class="hidden settings-grid">
     <div class="card">
-      <h2>Курсы валют к RUB</h2>
+      <h2 class="card-title">Тема</h2>
+      <div class="segmented" id="theme-switch">
+        <button data-theme-value="system">Системная</button>
+        <button data-theme-value="light">Светлая</button>
+        <button data-theme-value="dark">Тёмная</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Курсы валют к рублю</h2>
       <form id="rates-form">
-        <div class="form-row">
+        <div class="field-grid">
           <label>USD
-            <input id="rate-usd" type="number" min="0" step="0.01" inputmode="decimal">
+            <input id="rate-usd" type="number" min="0" step="0.01" inputmode="decimal" placeholder="например 92.5">
           </label>
           <label>EUR
-            <input id="rate-eur" type="number" min="0" step="0.01" inputmode="decimal">
+            <input id="rate-eur" type="number" min="0" step="0.01" inputmode="decimal" placeholder="например 100">
           </label>
         </div>
+        <p class="muted">Без курса подписки в этой валюте не попадают в итоги.</p>
         <button type="submit">Сохранить курсы</button>
       </form>
     </div>
 
     <div class="card">
-      <h2>Данные</h2>
-      <div class="row-actions">
-        <button id="btn-export" class="secondary">Экспорт</button>
-        <button id="btn-import" class="secondary">Импорт</button>
+      <h2 class="card-title">Данные</h2>
+      <div class="action-row">
+        <button id="btn-export" class="soft">Экспорт в файл</button>
+        <button id="btn-import" class="soft">Импорт из файла</button>
         <input id="import-file" type="file" accept="application/json,.json" class="hidden">
       </div>
-      <p id="import-error" class="error hidden"></p>
+      <p id="import-error" class="error hidden" style="margin-top:12px"></p>
     </div>
 
     <div class="card">
-      <h2>Уведомления</h2>
+      <h2 class="card-title">Уведомления</h2>
       <div id="notif-status"></div>
     </div>
   </section>
 </main>
 
-<nav class="card" style="position:sticky;bottom:0;margin:0;border-radius:0;border-left:0;border-right:0;border-bottom:0;padding-bottom:calc(12px + env(safe-area-inset-bottom));">
-  <div class="tabs">
-    <button id="tab-list" class="active">Подписки</button>
-    <button id="tab-settings" class="secondary">Настройки</button>
-  </div>
+<nav class="bottom-nav" aria-label="Разделы">
+  <button class="tab-active" data-tab="list">Подписки</button>
+  <button class="tab-idle" data-tab="settings">Настройки</button>
 </nav>
 
 <div id="modal-root"></div>
@@ -275,6 +458,7 @@
 const SCHEMA_VERSION = 1;
 const STORAGE_KEY = "subscriptions-tracker:data";
 const RATES_KEY = "subscriptions-tracker:rates";
+const THEME_KEY = "subscriptions-tracker:theme";
 const CURRENCIES = ["RUB", "USD", "EUR"];
 const PERIODS = { monthly: "Раз в месяц", yearly: "Раз в год" };
 const CARD_PATTERN = /\b(?:\d[ -]?){13,19}\b/;
@@ -306,6 +490,22 @@ const DataStore = {
   saveRates(rates) {
     localStorage.setItem(RATES_KEY, JSON.stringify(rates));
   },
+
+  loadTheme() {
+    try {
+      return localStorage.getItem(THEME_KEY) || "system";
+    } catch {
+      return "system";
+    }
+  },
+
+  saveTheme(theme) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* Тема просто не запомнится — интерфейс работает и так */
+    }
+  },
 };
 
 /* Приводит данные любой поддерживаемой версии к текущей схеме. */
@@ -334,7 +534,7 @@ function normalizeSubscription(raw) {
   if (!CURRENCIES.includes(currency)) throw new Error(`Неизвестная валюта у «${name}»`);
   if (!PERIODS[period]) throw new Error(`Неизвестная периодичность у «${name}»`);
   if (!isIsoDate(nextDate)) throw new Error(`Некорректная дата у «${name}»`);
-  const source = String(raw.source || "");
+  const source = String(raw.source || "").trim();
   if (CARD_PATTERN.test(source)) throw new Error(`В поле «Откуда списывается» похоже на номер карты у «${name}»`);
 
   return {
@@ -345,7 +545,7 @@ function normalizeSubscription(raw) {
     period,
     nextDate,
     category: String(raw.category || "").trim(),
-    source: source.trim(),
+    source,
     note: String(raw.note || "").trim(),
   };
 }
@@ -477,6 +677,8 @@ function escapeHtml(value) {
 const state = {
   data: DataStore.load(),
   rates: DataStore.loadRates(),
+  theme: DataStore.loadTheme(),
+  tab: "list",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -507,7 +709,11 @@ function renderUpcoming() {
     .map((sub) => {
       const left = daysUntil(sub.nextDate);
       const when = left === 0 ? "сегодня" : left === 1 ? "завтра" : `через ${left} дн.`;
-      return `<li><strong>${escapeHtml(sub.name)}</strong>: ${formatMoney(sub.amount, sub.currency)}, ${when} (${formatDate(sub.nextDate)})</li>`;
+      return `<div class="upcoming-item">
+        <div><div class="upcoming-name">${escapeHtml(sub.name)}</div>
+        <div class="muted">${formatMoney(sub.amount, sub.currency)} · ${formatDate(sub.nextDate)}</div></div>
+        <div class="upcoming-when">${when}</div>
+      </div>`;
     })
     .join("");
 }
@@ -516,33 +722,43 @@ function renderTotals() {
   const totals = calculateTotals(state.data.subscriptions, state.rates);
   $("total-month").textContent = formatMoney(totals.month, "RUB");
   $("total-year").textContent = formatMoney(totals.year, "RUB");
+  const count = state.data.subscriptions.length;
+  const note = [`Подписок: ${count}`];
+  if (totals.skipped > 0) note.push(`без курса не учтено: ${totals.skipped}`);
+  $("total-note").textContent = note.join(" · ");
 }
 
 function renderList() {
   const list = $("subs-list");
   if (state.data.subscriptions.length === 0) {
-    list.innerHTML = `<div class="empty">Подписок пока нет. Нажмите «+ Добавить».</div>`;
+    list.innerHTML = `<div class="empty"><strong>Подписок пока нет</strong>Нажмите «+ Добавить», чтобы внести первую.</div>`;
     return;
   }
   const sorted = [...state.data.subscriptions].sort((a, b) => a.nextDate.localeCompare(b.nextDate));
   list.innerHTML = sorted
     .map((sub) => {
-      const meta = [sub.category, PERIODS[sub.period], `следующее: ${formatDate(sub.nextDate)}`, sub.source]
+      const left = daysUntil(sub.nextDate);
+      const soon = left >= 0 && left <= 7;
+      const chips = [
+        sub.category && `<span class="chip">${escapeHtml(sub.category)}</span>`,
+        `<span class="chip">${PERIODS[sub.period]}</span>`,
+        `<span class="chip ${soon ? "soon" : ""}">${formatDate(sub.nextDate)}</span>`,
+        sub.source && `<span class="chip">${escapeHtml(sub.source)}</span>`,
+      ]
         .filter(Boolean)
-        .map(escapeHtml)
-        .join(" · ");
+        .join("");
       return `
         <div class="sub-item">
           <div>
             <div class="sub-name">${escapeHtml(sub.name)}</div>
-            <div class="sub-meta">${meta}</div>
             ${sub.note ? `<div class="sub-meta">${escapeHtml(sub.note)}</div>` : ""}
-            <div class="row-actions">
-              <button class="secondary" data-action="edit" data-id="${sub.id}">Изменить</button>
-              <button class="secondary" data-action="delete" data-id="${sub.id}">Удалить</button>
+            <div class="sub-chips">${chips}</div>
+            <div class="sub-actions">
+              <button class="ghost small" data-action="edit" data-id="${sub.id}">Изменить</button>
+              <button class="ghost small" data-action="delete" data-id="${sub.id}">Удалить</button>
             </div>
           </div>
-          <div class="sub-amount">${formatMoney(sub.amount, sub.currency)}</div>
+          <div class="sub-amount">${formatMoney(sub.amount, sub.currency)}<small>${sub.period === "yearly" ? "в год" : "в месяц"}</small></div>
         </div>`;
     })
     .join("");
@@ -599,7 +815,7 @@ function openSubscriptionForm(existing) {
       </label>
       <p id="form-error" class="error hidden"></p>
       <div class="form-actions">
-        <button type="button" class="secondary" data-action="cancel">Отмена</button>
+        <button type="button" class="ghost" data-action="cancel">Отмена</button>
         <button type="submit">Сохранить</button>
       </div>
     </form>`);
@@ -623,8 +839,7 @@ function openSubscriptionForm(existing) {
     try {
       const saved = normalizeSubscription(draft);
       const others = state.data.subscriptions.filter((s) => s.id !== saved.id);
-      state.data.subscriptions = [...others, saved];
-      state.data.subscriptions = refreshDates(state.data.subscriptions).subscriptions;
+      state.data.subscriptions = refreshDates([...others, saved]).subscriptions;
       persist();
       closeModal();
       render();
@@ -642,7 +857,7 @@ function confirmDelete(id) {
     <h2>Удалить подписку?</h2>
     <p>«${escapeHtml(sub.name)}» будет удалена без возможности восстановления.</p>
     <div class="form-actions">
-      <button class="secondary" data-action="cancel">Отмена</button>
+      <button class="ghost" data-action="cancel">Отмена</button>
       <button class="danger" data-action="confirm">Удалить</button>
     </div>`);
   modal.querySelector("[data-action=cancel]").addEventListener("click", closeModal);
@@ -654,14 +869,28 @@ function confirmDelete(id) {
   });
 }
 
-/* ---------- Вкладки ---------- */
+/* ---------- Вкладки и тема ---------- */
 
 function showTab(name) {
-  const isList = name === "list";
-  $("view-list").classList.toggle("hidden", !isList);
-  $("view-settings").classList.toggle("hidden", isList);
-  $("tab-list").className = isList ? "active" : "secondary";
-  $("tab-settings").className = isList ? "secondary" : "active";
+  state.tab = name;
+  $("view-list").classList.toggle("hidden", name !== "list");
+  $("view-settings").classList.toggle("hidden", name !== "settings");
+  document.querySelectorAll("[data-tab]").forEach((button) => {
+    const active = button.dataset.tab === name;
+    button.className = active ? "tab-active" : "tab-idle";
+  });
+  $("btn-add").classList.toggle("hidden", name !== "list");
+}
+
+function applyTheme(theme) {
+  state.theme = theme;
+  DataStore.saveTheme(theme);
+  // Для системной темы атрибут не ставим: работает медиазапрос.
+  if (theme === "system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+  document.querySelectorAll("[data-theme-value]").forEach((button) => {
+    button.classList.toggle("on", button.dataset.themeValue === theme);
+  });
 }
 
 /* ---------- Настройки: курсы, экспорт, импорт, уведомления ---------- */
@@ -703,11 +932,11 @@ async function handleImportFile(file) {
 function renderNotificationStatus() {
   const box = $("notif-status");
   if (!("Notification" in window)) {
-    box.innerHTML = `<div class="notice">Этот браузер не поддерживает уведомления. Список «Скоро списания» виден на главном экране.</div>`;
+    box.innerHTML = `<div class="notice">Этот браузер не поддерживает уведомления. Блок «Скоро списания» виден на главном экране.</div>`;
     return;
   }
   if (Notification.permission === "granted") {
-    box.innerHTML = `<p>Уведомления разрешены.</p>`;
+    box.innerHTML = `<p class="muted" style="margin:0">Уведомления разрешены.</p>`;
   } else if (Notification.permission === "denied") {
     box.innerHTML = `<div class="notice">Уведомления запрещены в настройках браузера.</div>`;
   } else {
@@ -723,8 +952,14 @@ function renderNotificationStatus() {
 
 function bindEvents() {
   $("btn-add").addEventListener("click", () => openSubscriptionForm(null));
-  $("tab-list").addEventListener("click", () => showTab("list"));
-  $("tab-settings").addEventListener("click", () => showTab("settings"));
+
+  document.querySelectorAll("[data-tab]").forEach((button) => {
+    button.addEventListener("click", () => showTab(button.dataset.tab));
+  });
+
+  document.querySelectorAll("[data-theme-value]").forEach((button) => {
+    button.addEventListener("click", () => applyTheme(button.dataset.themeValue));
+  });
 
   $("subs-list").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-action]");
@@ -755,6 +990,7 @@ function bindEvents() {
 }
 
 function start() {
+  applyTheme(state.theme);
   applyDateRefresh();
   bindEvents();
   renderRatesForm();
